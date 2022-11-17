@@ -4,9 +4,9 @@ async function main() {
 
     // Vertices for a triangle
     var vertices = [
-        -0.5, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0, 
+        -1.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0,
+        1.0, -1.0, 0.0,
      ];
 
     // Indices to tell the GPU in which order to render the vertices
