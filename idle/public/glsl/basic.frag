@@ -1,8 +1,10 @@
 #version 300 es
 
-in mediump vec4 fragPos;
+uniform mediump vec4 uColor;
+// in mediump vec4 aColor;
+
 out mediump vec4 fragColor;
 
 void main() {
-    fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    fragColor = uColor;
 }

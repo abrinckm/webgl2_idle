@@ -3,11 +3,17 @@ async function main() {
     const gl = canvas.getContext("webgl2");
 
     // Vertices for a triangle
-    var vertices = [
-        -0.5, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0, 
-     ];
+    let vertices = [
+        -1.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0,
+        1.0, -1.0, 0.0,
+    ];
+
+    let colors = [
+        1.0, 1.0, 0.0, 1.0,  // Yellow
+        0.0, 0.0, 1.0, 1.0,  // Blue
+        1.0, 0.0, 0.0, 1.0,  // Red
+    ];
 
     // Indices to tell the GPU in which order to render the vertices
     let indices = [0, 1, 2]
@@ -31,8 +37,12 @@ async function main() {
         indexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-
+        
+        // Colors
+        colorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        
         // Paint the canvas black
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
@@ -40,8 +50,16 @@ async function main() {
         gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         
-
+        
+        // Set Colors
+        let color = new Float32Array([0.0, 1.0, 0.0, 1.0]);  // GREEN
+        gl.uniform4fv(programInfo.uniforms.uColor, color);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        // gl.vertexAttribPointer(programInfo.attributes.aColor, 4, gl.FLOAT, false, 0, 0);
+        // gl.enableVertexAttribArray(programInfo.attributes.aColor);
+        
         // Draw triangle
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.vertexAttribPointer(programInfo.attributes.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.attributes.aVertexPosition);
         gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);

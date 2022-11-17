@@ -1,7 +1,11 @@
 #version 300 es
 
+// in vec4 aVertexColor;
 in vec3 aVertexPosition;
 
+// out vec4 aColor;
+
 void main() {
-    gl_Position = vec4(aVertexPosition, 1.0);
+    // aColor = aVertexColor;
+    gl_Position = vec4(aVertexPosition * 0.5, 1.0);
 }
