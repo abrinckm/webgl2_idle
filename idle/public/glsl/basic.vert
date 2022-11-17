@@ -1,11 +1,21 @@
 #version 300 es
 
-// in vec4 aVertexColor;
+uniform float uTheta;
+uniform mat4 uProjectionMatrix;
+
 in vec3 aVertexPosition;
 
-// out vec4 aColor;
-
 void main() {
-    // aColor = aVertexColor;
-    gl_Position = vec4(aVertexPosition * 0.5, 1.0);
+    float x = aVertexPosition.x;
+    float y = aVertexPosition.y;
+    float z = aVertexPosition.z;
+
+    vec4 position;
+    position.x = x * cos(uTheta) - y * sin(uTheta);
+    position.y = x * sin(uTheta) + y * cos(uTheta);
+    position.z = z;
+    position.w = 1.0;
+
+    position = uProjectionMatrix * position;
+    gl_Position = vec4(position);
 }
