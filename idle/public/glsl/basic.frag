@@ -10,7 +10,7 @@ void main() {
     mediump vec3 norm = normalize(normal).xyz;
     mediump vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
-    mediump vec3 lightDir = -normalize(vec3(0.85, 0.8, 0.75));
+    mediump vec3 lightDir = -normalize(vec3(0.85, 0.8, 0.35));
     mediump float diff = max(dot(norm, lightDir), 0.0);
     mediump vec3 diffuse = diff * lightColor;
 
