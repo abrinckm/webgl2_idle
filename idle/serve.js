@@ -16,6 +16,7 @@ contentTypes = {
     '.gltf': 'application/json',
     '.vert': 'text/plain',
     '.frag': 'text/plain',
+    '.obj': 'text/plain',
 };
 
 

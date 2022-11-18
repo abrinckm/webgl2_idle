@@ -5,14 +5,9 @@ async function main() {
     const gl = canvas.getContext("webgl2");
 
     // Vertices for a triangle
-    let vertices = [
-        -1.0, 1.0, -5.0,
-        -1.0, -1.0, -5.0,
-        1.0, -1.0, -5.0,
-    ];
-
+    let vertices = Utah.vertices
     // Indices to tell the GPU in which order to render the vertices
-    let indices = [0, 1, 2]
+    let indices = Utah.indices
     
     // Compile the shaders
     await BasicShader.loadShaders();
@@ -40,6 +35,8 @@ async function main() {
     ///
 
     {
+        let modelViewMatrix = mat4.create();
+        let rotation = quat.create();
         // Ship indices and vertex data to the GPU
         vertexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -58,6 +55,17 @@ async function main() {
         gl.enableVertexAttribArray(programInfo.attributes.aVertexPosition);
         
         gl.viewport(0, 0, 1280, 720);
+        
+        quat.fromEuler(rotation, 180, 1.0, 0.0, 0.0);
+        let translation = vec3.fromValues(0.0, -1.0, -5.0);
+        let scale = vec3.fromValues(1.0, 1.0, 1.0);
+
+        mat4.fromRotationTranslationScale(
+            modelViewMatrix, 
+            rotation,
+            translation,
+            scale
+        );
 
         let theta = 0.0;
         function flipBook() {
@@ -68,11 +76,9 @@ async function main() {
             gl.depthFunc(gl.LEQUAL);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            theta += .1 * DEG_TO_RADIANS;
-            theta %= 365;
-            gl.uniform1f(programInfo.uniforms.uTheta, theta);
-
-            gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);
+            mat4.rotateY(modelViewMatrix, modelViewMatrix, 0.1 * DEG_TO_RADIANS);
+            gl.uniformMatrix4fv(programInfo.uniforms.uModelViewMatrix, false, modelViewMatrix);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
             window.requestAnimationFrame(flipBook);
         }
