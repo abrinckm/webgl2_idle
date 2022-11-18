@@ -52,11 +52,11 @@ async function main() {
         
         
         // Set Colors
-        let color = new Float32Array([0.0, 1.0, 0.0, 1.0]);  // GREEN
-        gl.uniform4fv(programInfo.uniforms.uColor, color);
-        // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        // gl.vertexAttribPointer(programInfo.attributes.aColor, 4, gl.FLOAT, false, 0, 0);
-        // gl.enableVertexAttribArray(programInfo.attributes.aColor);
+        // let color = new Float32Array([0.0, 1.0, 0.0, 1.0]);  // GREEN
+        // gl.uniform4fv(programInfo.uniforms.uColor, color);
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(programInfo.attributes.aVertexColor, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.attributes.aVertexColor);
         
         // Draw triangle
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
