@@ -71,23 +71,31 @@ async function main() {
     await PBRShader.loadShaders();
     // await MirrorShader.loadShaders();
     await CubeMapShader.loadShaders();
-    await PanoramaToCubeShader.loadShaders();
+    // await PanoramaToCubeShader.loadShaders();
     
-    // NOTE(Adam): Generate cube map from equirectangular image using the EnvShader
-    let cubeMapTexture = null;
-    let irradianceMapId = null; 
-    {
-        // TODO(Adam): Check client capabilities
-        const panoramaToCubeShader = new PanoramaToCubeShader();
-        const envMap = new EnvironmentMap();
-        await envMap.load(gl, "Assets/skybox/Mono_Lake_B_Ref.hdr");
-        let cubeMapResolution = 256;
-        cubeMapTexture = envMap.generateCubeMap(gl, panoramaToCubeShader, cubeMapResolution, false);
-    }
+    // // NOTE(Adam): Generate cube map from equirectangular image using the EnvShader
+    // let cubeMapTexture = null;
+    // let irradianceMapId = null; 
+    // {
+    //     // TODO(Adam): Check client capabilities
+    //     const panoramaToCubeShader = new PanoramaToCubeShader();
+    //     const envMap = new EnvironmentMap();
+    //     await envMap.load(gl, "Assets/skybox/Mono_Lake_B_Ref.hdr");
+    //     let cubeMapResolution = 256;
+    //     cubeMapTexture = envMap.generateCubeMap(gl, panoramaToCubeShader, cubeMapResolution, false);
+    // }
 
     // Initialize SkyBox
     const skyboxShader = new CubeMapShader();
     const skybox = new CubeMap(skyboxShader);
+    skybox.load(gl, [
+        'Assets/skybox/right.jpg',
+        'Assets/skybox/left.jpg',
+        'Assets/skybox/top.jpg',
+        'Assets/skybox/bottom.jpg',
+        'Assets/skybox/front.jpg',
+        'Assets/skybox/back.jpg',
+    ])
     window.setTimeout(() => {skybox.initialize(gl);}, 3000);
     // skybox.initialize(gl);
     GameState.skybox = skybox;
@@ -110,17 +118,17 @@ async function main() {
     const scene = new Node();
 
     {
-        // let loader = new GltfLoaderIdle();
-        // // let uri = 'Assets/Models/PBR/lieutenantHead/lieutenantHead.gltf';
-        // let uri = 'Assets/Models/PBR/Adam/adamHead.gltf';
-        // adamHead = await loader.loadAsset(gl, uri);
-        // adamHead.rotate(90 * Math.PI / 180, vec3.fromValues(1.0, 0.0, 0.0));
-        // adamHead.translate(vec3.fromValues(0.0, -3.5, 0.5));
+        let loader = new GltfLoaderIdle();
+        // let uri = 'Assets/Models/PBR/lieutenantHead/lieutenantHead.gltf';
+        let uri = 'Assets/Models/PBR/Adam/adamHead.gltf';
+        adamHead = await loader.loadAsset(gl, uri);
+        adamHead.rotate(90 * Math.PI / 180, vec3.fromValues(1.0, 0.0, 0.0));
+        adamHead.translate(vec3.fromValues(0.0, -3.5, 0.5));
         // // adamHead.translate(vec3.fromValues(0.0, 0.0, -3.5));
-        // adamHead.scale(vec3.fromValues(100, 100, 100));
+        adamHead.scale(vec3.fromValues(100, 100, 100));
         // // adamHead.rotate(180*Math.PI/180, vec3.fromValues(0.0, 1.0, 0.0));
-        // adamHead.rotate(180*Math.PI/180, vec3.fromValues(0.0, 0.0, 1.0));
-        // scene.addChild(adamHead, 'adamHead');
+        adamHead.rotate(180*Math.PI/180, vec3.fromValues(0.0, 0.0, 1.0));
+        scene.addChild(adamHead, 'adamHead');
     }
 
     scene.initialize(gl);
