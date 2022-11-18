@@ -41,9 +41,11 @@ async function main() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         
 
-        // Draw triangle
+        // Tell GPU where to find the vertex data
         gl.vertexAttribPointer(programInfo.attributes.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.attributes.aVertexPosition);
+
+        // Draw Triangles
         gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);
     }
 }
