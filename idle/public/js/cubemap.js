@@ -138,8 +138,8 @@ class EnvironmentMap {
         //TODO(Adam): Switch formats on what is supported by client
         // let format = this.use8bit ? gl.RGB : gl.RGB32F;
         
-        if (BaseShader.anisotropySupported) {
-            gl.texParameterf(gl.TEXTURE_2D, BaseShader.anisotropy, BaseShader.maxAnisotropy);
+        if (Shader.anisotropySupported) {
+            gl.texParameterf(gl.TEXTURE_2D, Shader.anisotropy, Shader.maxAnisotropy);
         }
 
         gl.texImage2D(
@@ -155,7 +155,7 @@ class EnvironmentMap {
         resolve(true);
     }
 
-    generateCubeMap(gl, shader, resolution, withMipmap=true) {
+    static generateCubeMap(gl, shader, resolution, withMipmap=true) {
         if (!shader._init) {
             shader.initialize(gl);
         }

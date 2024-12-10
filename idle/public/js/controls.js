@@ -1,12 +1,30 @@
-const FORWARD = 0x001;
-const BACK = 0x008;
-const LEFT = 0x040;
-const RIGHT = 0x200;
+const FORWARD = 0x001; // 'W'
+const BACK = 0x008;    // 'S'
+const LEFT = 0x040;    // 'A'
+const RIGHT = 0x200;   // 'D'
 
+
+/**
+ * @classdesc
+ * Captures user input and registers input as an action to adjust the camera during the update loop.
+ * 
+ * @class
+ */
 class Controls {
 
     static instance = null;
 
+    /**
+     * @typedef {Object} ControlOptions
+     * @property {number} mouseSpeed
+     * @property {number} moveSpeed
+     * @property {number} sprintSpeed
+     */
+
+    /**
+     * @constructor
+     * @param {ControlOptions} options 
+     */
     constructor(options=null) {
         options = options || {};
         this.mouseSpeed = options.mouseSpeed || 0.002;
@@ -18,6 +36,12 @@ class Controls {
         this.yawDelta = 0.0;
     }
 
+    /**
+     * Bind callback functions to the mouse and keyboard event listeners
+     * @param {HTMLCanvasElement} canvas The HTML element
+     * @param {ControlOptions} options 
+     * @returns {Controls}
+     */
     static initialize(canvas, options) {
         if (Controls.instance) {
             return Controls.instance;
@@ -32,6 +56,10 @@ class Controls {
         return controls;
     }
 
+    /**
+     * Set the yaw and pitch deltas based on the mouse movements registered by the client browser
+     * @param {MouseEvent} evt 
+     */
     rotateCamera(evt) {
         if (this.rotateActive) {
             this.yawDelta = -evt.movementX;
@@ -39,6 +67,10 @@ class Controls {
         }
     }
 
+    /**
+     * Set the move vector based on the keyboard event registered by the client browser
+     * @param {KeyboardEvent} evt 
+     */
     registerKeyDown(evt) {
         if (evt.code == "KeyW") {
             this.moveVector |= FORWARD;
@@ -54,6 +86,10 @@ class Controls {
         }
     }
     
+    /**
+     * Release a move vector based on the keyboard event registered by the client browser
+     * @param {KeyboardEvent} evt 
+     */
     registerKeyUp(evt) {
         if (evt.code == "KeyW") {
             this.moveVector ^= FORWARD;
@@ -69,6 +105,13 @@ class Controls {
         }
     }
 
+    /**
+     * Convert rotation deltas to radians based on the milliseconds elapsed since last update. Convert camera movement speed based on milliseconds since last update.
+     * Update the camera.
+     * @param {number} deltaTime Milliseconds since last update
+     * @param {Camera} camera 
+     * @returns {boolean} True if a movement or rotation happened this update iteration.
+     */
     update(deltaTime, camera) {
         if (this.rotateActive) {
             let gain = this.mouseSpeed * deltaTime;
@@ -98,6 +141,12 @@ class Controls {
         return this.moveVector | this.rotateActive;
     }
 
+    /**
+     * Helper function to adjust movement vectors based on movement speed and delta time
+     * @param {vec3} velocity Out vector. the new movement velocity
+     * @param {vec3} vector In vector. the current movement vector
+     * @param {number} gain The amount to scale the velocity
+     */
     _addVelocity(velocity, vector, gain) {
         vec3.add(
             velocity,

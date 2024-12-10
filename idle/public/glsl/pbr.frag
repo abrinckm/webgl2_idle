@@ -166,7 +166,7 @@ vec3 tonemap(vec3 color)
 
 
     // Hill +Exposure
-    // color /= 0.6;
+    color /= 0.6;
     color = toneMapACES_Hill(color);
     return linearTosRGB(color);
 

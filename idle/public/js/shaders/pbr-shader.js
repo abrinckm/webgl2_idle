@@ -1,5 +1,13 @@
-
-class PBRShader extends BaseShader {
+/**
+ * @classdesc
+ * The physically based rendering (PBR) shader is used for most assets. The shader heuristically renders lights and material surfaces to be as photorealistic as possible.
+ * This is going to be the most expensive shader in terms of VRAM for textures and also in terms of computation for the many heuristic algorithms used to make the
+ * rendering details photorealistic.
+ * 
+ * @class
+ * @extends Shader
+ */
+class PBRShader extends Shader {
     static vsSourcePath = '/glsl/pbr.vert';
     static fsSourcePath = '/glsl/pbr.frag';
 

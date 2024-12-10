@@ -3,22 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 
-contentTypes = {
-    '.html': 'text/javascript',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.ico': 'image/x-icon',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.hdr': 'image/vnd.radiance',
-    '.bin': 'application/octet-stream',
-    '.gltf': 'application/json',
-    '.vert': 'text/plain',
-    '.frag': 'text/plain',
-};
-
-
+/*
+Inserts the shader code for the referenced headers
+@param {Buffer} content The binary content for the fragment shader
+@returns {Buffer} The expanded fragment shader with the inserted header code
+*/
 function includeHeaders(content) {
     const re = /\/\/include\s{1}<([\.\w]+)>/gm;
     let str = content.toString();
@@ -31,25 +20,44 @@ function includeHeaders(content) {
     return Buffer.from(str);
 }
 
+/*
+@const SERVER {string}
 
-const server = http.createServer(function(req, res) {
-    notFound = true;
+An http server which serves a file based on the url path, filename, and content type
+Will only serve content that is listed in `contentTypes`
+*/
+const SERVER = http.createServer(function(req, res) {
+    let contentTypes = {
+        '.html': 'text/javascript',           // canvas and script loading
+        '.js': 'text/javascript',             // gfx scripts
+        '.css': 'text/css',
+        '.ico': 'image/x-icon',               // icon
+        '.png': 'image/png',                  // icons & textures
+        '.jpg': 'image/jpeg',                 // textures
+        '.jpeg': 'image/jpeg',                // textures
+        '.hdr': 'image/vnd.radiance',         // mostly for hdr cubemap
+        '.bin': 'application/octet-stream',   // objects
+        '.gltf': 'application/json',          // objects
+        '.vert': 'text/plain',                // shaders
+        '.frag': 'text/plain',                // shaders
+    };
+
+    // favicon
     if (match = req.url.match('favicon(\.\\w+)$')) {
-        ext = match[1];
         res.setHeader('Content-Type', 'image/x-icon');
         fs.createReadStream(path.join(__dirname, 'public', req.url)).pipe(res);
     }
+    // canvas UI
     else if (req.url === "/") {
         fs.readFile("./public/index.html", "UTF-8", function(err, html) {
-            notFound = false;
             res.writeHead(200, {"Content-Type": "text/html"});
             res.end(html);
         });
     }
+    // content - shaders, scripts, materials, and textures
     else if (match = req.url.match("\.\\w+$")) {
         let ext = match[0];
         if (ext in contentTypes) {
-            notFound = false;
             let filePath = path.join(__dirname, 'public', req.url);
             res.writeHead(200, {"Content-Type":  contentTypes[ext]});
             fs.readFile(filePath, function(err, content) {
@@ -60,12 +68,13 @@ const server = http.createServer(function(req, res) {
             });
         }
     }
-    else if (notFound) {
+    // not found
+    else {
         res.writeHead(404, {"Content-Type": "text/html"});
-        res.end("No Page Found");
+        res.end("Not Found");
     }
 })
 
 
 console.log("listening on: http://localhost:3000");
-server.listen(3000);
+SERVER.listen(3000);

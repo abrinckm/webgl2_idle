@@ -1,6 +1,6 @@
 //https://github.com/bwasty/gltf-loader-ts;
 
-const COMPONENTS = {
+const COMPONENT_SIZES = {
     "SCALAR": 1,
     "VEC2": 2,
     "VEC3": 3,
@@ -8,8 +8,22 @@ const COMPONENTS = {
 }
 
 
+/**
+ * @classdesc
+ * An extension of bwasty's gltf loader. This in a URI to a GLTF file, loads the data, then instantiates scene assets, materials, and textures.
+ * 
+ * @class
+ * @extends GltfLoader.GltfLoader
+ */
 class GltfLoaderIdle extends GltfLoader.GltfLoader {
 
+    /**
+     * Loads the GLTF data from the file, then instantiates all of the asset's materials and textures from the data.
+     * @async
+     * @param {WebGL2RenderingContext} gl 
+     * @param {string} uri URI location of the gltf file
+     * @returns {Asset} The complete scene asset with materials, textures, and buffer views
+     */
     async loadAsset(gl, uri) {
         let asset = await this.load(uri);
         let gltf = asset.gltf;
@@ -31,18 +45,50 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         return sceneAsset;
     }
 
+    /**
+     * Loads the vertex buffer views. TODO(Adam): load joints & weights buffer views. 
+     * NOTE(Adam): why is this async?
+     * @async
+     * @param {Asset} asset 
+     * @param {GltfLoader.GltfAsset} gltf GLTF Asset
+     * @returns {Uint8Array[]} List of buffer views. Buffer views are an array of bytes containing vertex data
+     */
     async _loadBufferViews(asset, gltf) {
+        asset.test = async function(index) {
+            if (!this.gltf.bufferViews) {
+                /* istanbul ignore next */
+                throw new Error('No buffer views found.');
+            }
+            const bufferView = this.gltf.bufferViews[index];
+            const bufferData = await this.bufferData.get(bufferView.buffer);
+            const byteLength = bufferView.byteLength || 0;
+            const byteOffset = bufferView.byteOffset || 0;
+    
+            // For GLB files, the 'base buffer' is the whole GLB file, including the json part.
+            // Therefore we have to consider bufferData's offset within its buffer it as well.
+            // For non-GLB files it will be 0.
+            const baseBuffer = bufferData.buffer;
+            const baseBufferByteOffset = bufferData.byteOffset;
+            return new Uint8Array(baseBuffer, baseBufferByteOffset + byteOffset, byteLength);
+        }
         const views = [];
         for (let i = 0; i < gltf.bufferViews.length; i += 1) {
             let { target } = gltf.bufferViews[i];
             if (target) { // TODO(Adam): Implement joints & weights buffer views
-                let data = await asset.bufferViewData(i);
+                // let data = await asset.bufferViewData(i);
+                let data = await asset.test(i);
                 views.push({data, target});
             }
         }
         return views;
     }
 
+    /**
+     * Instantiates new textures and loads the image data.
+     * @param {WebGL2RenderingContext} gl used to instantiate WebGL datastructures to load texture data into.
+     * @param {GltfLoader.GltfAsset} gltf GLTF Asset
+     * @returns {Texture[]} The array of pre-loaded textures
+     */
     _loadTextures(gl, gltf) {
         const textures = [];
         for (let i = 0; i < gltf.textures.length; i += 1) {
@@ -55,11 +101,17 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         return textures;
     }
 
+    /**
+     * Instantiate a new Material with a new Shader and load any textures used by the material.
+     * @param {GltfLoader.GltfAsset} gltf GLTF Asset
+     * @param {Textures[]} textures An array of textures used by the materials
+     * @returns {Materials[]} An array of materials
+     */
     _loadMaterials(gltf, textures) {
         const materials = [];
         for (let i = 0; i < gltf.materials.length; i += 1) {
             let mat = gltf.materials[i];
-            let material = new Material(new PBRShader());
+            let material = new Material(new PBRShader());  // NOTE(Adam): why? why have a separate instance of the same shader per material?
             
             if (mat.normalTexture) {
                 let { index, scale } = mat.normalTexture;
@@ -89,6 +141,13 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         return materials;
     }
 
+    /**
+     * The coded shaders and the materials support the PBR specular glossiness extension. Checks if the GLTF asset has these extensions, and 
+     * if so, load these extension values into the material.
+     * @param {Material} material The material to load the PBR specular glossiness values into
+     * @param {Object} extensions GLTF extensions
+     * @param {Textures[]} textures An array with the SpecularGlossiness texture and/or diffuse texture
+     */
     KHR_materials_pbrSpecularGlossiness(material, extensions, textures) {
         let { diffuseFactor, specularFactor, glossinessFactor } = extensions.KHR_materials_pbrSpecularGlossiness;
         if (diffuseFactor) {
@@ -109,10 +168,19 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         }
     }
 
+    /**
+     * Recursively create the hierarchical scene graph.
+     * @param {WebGL2RenderingContext} gl 
+     * @param {GltfLoader.GltfAsset} gltf GLTF Asset
+     * @param {Asset} sceneAsset Root scene node
+     * @param {Asset} parent Local parent scene node
+     * @param {GltfLoader.Node[]} children An array of GLTF children node data
+     */
     _provisionChildNodes(gl, gltf, sceneAsset, parent, children) {
         for (let i = 0; i < children.length; i += 1) {
             let node = gltf.nodes[children[i]];
             let childNode;
+            // The childNode will either be a renderable Model (with mesh) or an empty transform
             if (node.mesh != undefined) {
                 childNode = this._loadMesh(gltf, node.mesh, sceneAsset);
                 sceneAsset.addModel(children[i], childNode);
@@ -120,9 +188,11 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
             else {
                 childNode = new Transform();
             }
+            // If the the child node already has an orientation configured by the 3D model, then apply this orientation
             if (node.matrix) {
                 childNode.modelMatrix(node.matrix);
             }
+            // Otherwise, it does not have an orientation set the 3D model. So use a default orientation
             else {
                 let translation = node.translation || vec3.create();
                 let rotation = node.rotation || quat.create();
@@ -136,6 +206,13 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         }
     }
 
+    /**
+     * Instantiates a new Model with a renderable mesh. Instantiates all of the mesh primitives and their attributes.
+     * @param {GLTFLoader.GltfAsset} gltf The GLTF asset
+     * @param {GLTFLoader.Mesh} nodeMesh 
+     * @param {Asset} sceneAsset Root scene node
+     * @returns {Model} Model with mesh
+     */
     _loadMesh(gltf, nodeMesh, sceneAsset) {
         let model = new Model();
         let mesh = new Mesh();
@@ -147,24 +224,37 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
             const meshPrim = new MeshPrimitive(mode, indices);
             for (let attribType in primitive.attributes) {
                 const attrib = this._loadAttribute(gltf, primitive.attributes[attribType]);
+                // The texture coord attribute for the mesh primitive is added as a special tex attribute because GPUs only have a specific number
+                // of memory locations we can load texture data into.
                 if (attribType.match("TEX")) {
                     meshPrim.addTexCoordAttribute(attribType.split("_")[1], attrib);
                 } 
+                // This is a generic vertex attribute. One of: POSITION, NORMAL, TANGENT, COLOR
                 else {
                     meshPrim.addAttribute(attribType, attrib);
                 } 
             }
-            mesh.addPrimitive(meshPrim);
+            // Look up which material this primitive will use and then attach it to the primitive.
             const material = sceneAsset._materials[primitive.material];
+            // If the primitive uses a solid COLOR attribute (sometimes in place of a diffuse texture), then define a boolean on the shader
+            // to let the shader logic know that this primitive will require coloring based on the vertex attribute data.
+            // NOTE(Adam): Is this the reason each mesh primitive has it's own shader instantiation? Can we just undefine/define during rending per primitive? or just set a
+            //   a uniform variable?
             if (primitive.attributes.COLOR_0) {
                 material._shader.define("HAS_BASE_COLOR");
             }
-            mesh.addMaterial(material);
+            mesh.addPrimitive(meshPrim,  material);
         }
-        model.addMesh(mesh);
+        model.setMesh(mesh);
         return model;
     }
 
+    /**
+     * Instantiates a new MeshPrimitiveAttribute using GTLF buffer view metadata referenced by the given attribute ID.
+     * @param {GLTFLoader.GltfAsset} gltf The GLTF asset
+     * @param {GLTFLoader.GltfId} attribute The index of the attribute to load from the GTLF buffer asset accessors
+     * @returns 
+     */
     _loadAttribute(gltf, attribute) {
         let accessor = gltf.accessors[attribute];
         let bufferViewIdx = accessor.bufferView;
@@ -172,7 +262,7 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
         return new MeshPrimitiveAttribute(
             bufferViewIdx,
             bufferView.target,
-            COMPONENTS[accessor.type],
+            COMPONENT_SIZES[accessor.type],
             accessor.componentType,
             bufferView.byteStride || 0,
             accessor.byteOffset,
@@ -182,6 +272,13 @@ class GltfLoaderIdle extends GltfLoader.GltfLoader {
 }
 
 
+/**
+ * @classdesc
+ * Loads an asset to be used by the mirror shader. Similar to the AssetLoader above in almost every regard except for loading the mesh attributes.
+ * 
+ * @class
+ * @extends GltfLoader.GltfLoader
+ */
 class MirrorLoader extends GltfLoader.GltfLoader {
     async loadAsset(gl, uri) {
         let asset = await this.load(uri);
@@ -254,10 +351,9 @@ class MirrorLoader extends GltfLoader.GltfLoader {
             meshPrim.addAttribute("POSITION", position);
             let normal = this._loadAttribute(gltf, primitive.attributes.NORMAL);
             meshPrim.addAttribute("NORMAL", normal);
-            mesh.addPrimitive(meshPrim);
-            mesh.addMaterial(sceneAsset._materials[0]);
+            mesh.addPrimitive(meshPrim, sceneAsset._materials[0]);
         }
-        model.addMesh(mesh);
+        model.setMesh(mesh);
         return model;
     }
 
@@ -268,7 +364,7 @@ class MirrorLoader extends GltfLoader.GltfLoader {
         return new MeshPrimitiveAttribute(
             bufferViewIdx,
             bufferView.target,
-            COMPONENTS[accessor.type],
+            COMPONENT_SIZES[accessor.type],
             accessor.componentType,
             bufferView.byteStride || 0,
             accessor.byteOffset,
@@ -279,6 +375,7 @@ class MirrorLoader extends GltfLoader.GltfLoader {
 
 
 /**
+ * (WIP)
  * hdrpng.js - https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Viewer/master/source/libs/hdrpng.js
  */
 class HDRLoader {
